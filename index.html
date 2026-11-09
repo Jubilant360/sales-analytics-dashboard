@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseSales — Enterprise Sales Analytics</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="nav-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-chart-line"></i>
+      </div>
+      <div class="brand-text">
+        <h1>PulseSales</h1>
+        <span class="brand-tagline">Sales & Revenue Intelligence</span>
+      </div>
+    </div>
+
+    <!-- Quick Date Filter Toolbar -->
+    <div class="date-filter-group" id="dateFilterGroup">
+      <button class="filter-pill" data-range="7">7D</button>
+      <button class="filter-pill active" data-range="30">30D</button>
+      <button class="filter-pill" data-range="90">90D</button>
+      <button class="filter-pill" data-range="365">1Y</button>
+      <button class="filter-pill" data-range="all">All Time</button>
+    </div>
+
+    <!-- Global Header Actions -->
+    <div class="nav-actions">
+      <button id="exportCsvBtn" class="btn btn-outline" title="Export transactions to CSV">
+        <i class="fa-solid fa-file-arrow-down"></i>
+        <span>Export CSV</span>
+      </button>
+      <button id="resetDataBtn" class="btn btn-ghost" title="Reset to sample dataset">
+        <i class="fa-solid fa-rotate-left"></i>
+        <span>Reset Data</span>
+      </button>
+      <button id="openNewSaleModalBtn" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i>
+        <span>Record Sale</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Container -->
+  <main class="dashboard-container">
+    <!-- Notice Banner (if any filter active) -->
+    <div id="filterBanner" class="filter-banner" style="display: none;">
+      <i class="fa-solid fa-filter"></i>
+      <span id="filterBannerText">Showing data for selected period</span>
+      <button id="clearFiltersBtn" class="btn-link">Clear Filter</button>
+    </div>
+
+    <!-- KPI Metric Cards Grid -->
+    <section class="kpi-grid">
+      <!-- Card 1: Revenue -->
+      <div class="kpi-card" id="kpiRevenueCard">
+        <div class="kpi-header">
+          <span class="kpi-title">Gross Revenue</span>
+          <div class="kpi-icon-wrap purple-icon">
+            <i class="fa-solid fa-dollar-sign"></i>
+          </div>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiRevenue">$0.00</div>
+          <div class="kpi-trend" id="kpiRevenueTrend">
+            <span class="trend-badge positive">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+              <span id="kpiRevenueGrowth">+12.4%</span>
+            </span>
+            <span class="trend-subtext">vs previous period</span>
+          </div>
+        </div>
+        <div class="kpi-footer-metric">
+          <span>Net Profit: <strong id="kpiNetProfit">$0.00</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 2: Orders -->
+      <div class="kpi-card" id="kpiOrdersCard">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Orders</span>
+          <div class="kpi-icon-wrap skyblue-icon">
+            <i class="fa-solid fa-bag-shopping"></i>
+          </div>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiOrders">0</div>
+          <div class="kpi-trend">
+            <span class="trend-badge positive">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+              <span id="kpiOrdersGrowth">+8.2%</span>
+            </span>
+            <span class="trend-subtext">completed sales</span>
+          </div>
+        </div>
+        <div class="kpi-footer-metric">
+          <span>Avg. Items/Order: <strong id="kpiAvgItems">0.0</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 3: Average Order Value -->
+      <div class="kpi-card" id="kpiAovCard">
+        <div class="kpi-header">
+          <span class="kpi-title">Average Order Value</span>
+          <div class="kpi-icon-wrap purple-icon">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiAov">$0.00</div>
+          <div class="kpi-trend">
+            <span class="trend-badge neutral">
+              <i class="fa-solid fa-chart-line"></i>
+              <span id="kpiAovGrowth">Stable</span>
+            </span>
+            <span class="trend-subtext">per ticket</span>
+          </div>
+        </div>
+        <div class="kpi-footer-metric">
+          <span>Median Sale: <strong id="kpiMedianSale">$0.00</strong></span>
+        </div>
+      </div>
+
+      <!-- Card 4: Sales Target & Conversion Rate -->
+      <div class="kpi-card" id="kpiConversionCard">
+        <div class="kpi-header">
+          <span class="kpi-title">Target Attainment</span>
+          <div class="kpi-icon-wrap skyblue-icon">
+            <i class="fa-solid fa-bullseye"></i>
+          </div>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpiTargetRate">0%</div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="targetProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+        <div class="kpi-footer-metric">
+          <span>Monthly Target: <strong>$85,000.00</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics Charts Section -->
+    <section class="charts-row">
+      <!-- Main Timeline Revenue Chart -->
+      <div class="chart-panel chart-panel-large">
+        <div class="chart-panel-header">
+          <div>
+            <h3 class="chart-title">Revenue & Net Margin Trend</h3>
+            <p class="chart-subtitle">Daily sales volume compared with estimated net profit</p>
+          </div>
+          <div class="chart-legend-custom">
+            <span class="legend-item"><span class="legend-dot dot-purple"></span> Revenue</span>
+            <span class="legend-item"><span class="legend-dot dot-skyblue"></span> Profit (70%)</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper">
+          <canvas id="revenueTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Sales by Category Chart -->
+      <div class="chart-panel chart-panel-medium">
+        <div class="chart-panel-header">
+          <div>
+            <h3 class="chart-title">Sales by Category</h3>
+            <p class="chart-subtitle">Distribution across product lines</p>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper donut-wrapper">
+          <canvas id="categoryDonutChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secondary Charts Section -->
+    <section class="charts-row">
+      <!-- Sales by Channel Chart -->
+      <div class="chart-panel chart-panel-medium">
+        <div class="chart-panel-header">
+          <div>
+            <h3 class="chart-title">Sales by Channel</h3>
+            <p class="chart-subtitle">Revenue contributions per marketing source</p>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper">
+          <canvas id="channelBarChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Top Selling Products Breakdown -->
+      <div class="chart-panel chart-panel-medium">
+        <div class="chart-panel-header">
+          <div>
+            <h3 class="chart-title">Top Performing Items</h3>
+            <p class="chart-subtitle">Ranked by overall generated revenue</p>
+          </div>
+        </div>
+        <div class="leaderboard-list" id="topProductsList">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Sales Transactions Management Table -->
+    <section class="table-section">
+      <div class="table-section-header">
+        <div class="table-title-area">
+          <h2 class="table-title">Sales Transactions</h2>
+          <span class="table-count-badge" id="transactionCountBadge">0 records</span>
+        </div>
+
+        <!-- Table Filters & Search -->
+        <div class="table-filter-controls">
+          <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="tableSearchInput" placeholder="Search customer, item, or order ID...">
+          </div>
+
+          <div class="dropdown-select-wrap">
+            <select id="categoryFilterSelect">
+              <option value="all">All Categories</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Software">Software</option>
+              <option value="Hardware">Hardware</option>
+              <option value="Apparel">Apparel</option>
+              <option value="Services">Services</option>
+            </select>
+          </div>
+
+          <div class="dropdown-select-wrap">
+            <select id="channelFilterSelect">
+              <option value="all">All Channels</option>
+              <option value="Online Store">Online Store</option>
+              <option value="Retail Store">Retail Store</option>
+              <option value="B2B Wholesale">B2B Wholesale</option>
+              <option value="Social Media">Social Media</option>
+            </select>
+          </div>
+
+          <div class="dropdown-select-wrap">
+            <select id="statusFilterSelect">
+              <option value="all">All Statuses</option>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+              <option value="Refunded">Refunded</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table Wrapper -->
+      <div class="table-responsive">
+        <table class="sales-table" id="salesTable">
+          <thead>
+            <tr>
+              <th data-sort="id">Order ID <i class="fa-solid fa-sort"></i></th>
+              <th data-sort="customer">Customer <i class="fa-solid fa-sort"></i></th>
+              <th data-sort="product">Product & Category <i class="fa-solid fa-sort"></i></th>
+              <th data-sort="channel">Channel <i class="fa-solid fa-sort"></i></th>
+              <th data-sort="date">Date <i class="fa-solid fa-sort-down active"></i></th>
+              <th data-sort="amount" class="text-right">Amount <i class="fa-solid fa-sort"></i></th>
+              <th>Status</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="salesTableBody">
+            <!-- Dynamically populated via JS -->
+          </tbody>
+        </table>
+        <!-- Empty State -->
+        <div id="tableEmptyState" class="empty-state" style="display: none;">
+          <div class="empty-icon"><i class="fa-solid fa-inbox"></i></div>
+          <h4>No matching sales records found</h4>
+          <p>Try clearing filters or search criteria, or record a new transaction.</p>
+        </div>
+      </div>
+
+      <!-- Table Footer / Pagination -->
+      <div class="table-pagination">
+        <div class="pagination-info" id="paginationInfo">Showing 1 to 10 of 25 entries</div>
+        <div class="pagination-controls">
+          <button id="prevPageBtn" class="btn-page"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+          <div class="page-numbers" id="pageNumbers"></div>
+          <button id="nextPageBtn" class="btn-page">Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Record New Sale -->
+  <div class="modal-backdrop" id="saleModalBackdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-header-icon">
+            <i class="fa-solid fa-cart-plus"></i>
+          </div>
+          <div>
+            <h3 id="modalTitle">Record New Sale</h3>
+            <p class="modal-subtitle">Add a verified sale transaction to update analytics</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeSaleModalBtn">&times;</button>
+      </div>
+
+      <form id="saleForm" class="modal-form">
+        <input type="hidden" id="saleEditId" value="">
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="customerNameInput">Customer Name <span class="required">*</span></label>
+            <input type="text" id="customerNameInput" placeholder="e.g. Alex Morgan" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="customerEmailInput">Customer Email</label>
+            <input type="email" id="customerEmailInput" placeholder="e.g. alex@example.com">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="productNameInput">Product / Service Name <span class="required">*</span></label>
+            <input type="text" id="productNameInput" placeholder="e.g. Enterprise Cloud License" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="categoryInput">Category <span class="required">*</span></label>
+            <select id="categoryInput" required>
+              <option value="Electronics">Electronics</option>
+              <option value="Software">Software</option>
+              <option value="Hardware">Hardware</option>
+              <option value="Apparel">Apparel</option>
+              <option value="Services">Services</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="quantityInput">Quantity <span class="required">*</span></label>
+            <input type="number" id="quantityInput" min="1" max="9999" value="1" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="unitPriceInput">Unit Price ($) <span class="required">*</span></label>
+            <input type="number" id="unitPriceInput" min="0.01" step="0.01" placeholder="99.00" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="totalAmountDisplay">Total Amount</label>
+            <input type="text" id="totalAmountDisplay" readonly value="$0.00" class="input-readonly">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="channelInput">Sales Channel <span class="required">*</span></label>
+            <select id="channelInput" required>
+              <option value="Online Store">Online Store</option>
+              <option value="Retail Store">Retail Store</option>
+              <option value="B2B Wholesale">B2B Wholesale</option>
+              <option value="Social Media">Social Media</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="statusInput">Transaction Status <span class="required">*</span></label>
+            <select id="statusInput" required>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+              <option value="Refunded">Refunded</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="saleDateInput">Sale Date <span class="required">*</span></label>
+            <input type="date" id="saleDateInput" required>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelSaleModalBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveSaleBtn">
+            <i class="fa-solid fa-check"></i>
+            <span>Save Transaction</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: View Sale Details / Receipt -->
+  <div class="modal-backdrop" id="viewModalBackdrop" style="display: none;">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-header-icon skyblue-bg">
+            <i class="fa-solid fa-file-invoice"></i>
+          </div>
+          <div>
+            <h3>Transaction Details</h3>
+            <p class="modal-subtitle" id="viewOrderId">#ORD-0000</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeViewModalBtn">&times;</button>
+      </div>
+      <div class="receipt-body" id="receiptContent">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="printReceiptBtn">
+          <i class="fa-solid fa-print"></i> Print
+        </button>
+        <button type="button" class="btn btn-primary" id="closeViewModalBtn2">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
+
